@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>五期租金區間試算</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC","Helvetica Neue",Arial,"PingFang TC","Heiti TC",sans-serif;margin:20px}
+    label{display:block;margin-top:10px;font-size:14px}
+    input,select,button{padding:6px 10px;font-size:14px;margin-top:4px}
+    button{cursor:pointer}
+    .result{margin-top:20px;font-size:40px;font-weight:bold}
+    .ok{color:green}
+    .warn{color:red}
+    .detail{margin-top:8px;font-size:16px;color:#333;line-height:1.8}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <h1>租金比較表單</h1>
+
+  <form id="rentForm">
+    <label>行政區
+      <select id="district" required>
+        <option value="">— 請選擇 —</option>
+        <option>西屯區</option><option>北屯區</option><option>南屯區</option>
+        <option>北區</option><option>西區</option><option>中區</option><option>東區</option>
+        <option>烏日區</option><option>南區</option><option>大里區</option><option>太平區</option>
+        <option>潭子區</option><option>豐原區</option><option>后里區</option>
+        <option>沙鹿區</option><option>龍井區</option><option>大肚區</option>
+        <option>大雅區</option><option>神岡區</option><option>梧棲區</option>
+        <option>清水區</option><option>大甲區</option><option>外埔區</option>
+        <option>霧峰區</option><option>石岡區</option><option>東勢區</option>
+        <option>新社區</option><option>和平區</option><option>其他</option>
+      </select>
+    </label>
+
+    <label>是否為套房
+      <select id="isStudio" required>
+        <option value="">— 請選擇 —</option>
+        <option value="yes">yes（套房）</option>
+        <option value="no">no（非套房）</option>
+      </select>
+    </label>
+
+    <label>屋齡（年）
+      <input id="age" type="number" min="0" max="200" required>
+    </label>
+
+    <label>坪數（可輸入小數點兩位）
+      <input id="pings" type="number" min="0" step="0.01" required>
+    </label>
+
+    <label>現在租金
+      <input id="currentRent" type="number" min="0" step="1" required>
+    </label>
+
+    <button type="submit">送出</button>
+  </form>
+
+  <div id="result" class="result"></div>
+  <div id="detail" class="detail"></div>
+
+<script>
+// === 基礎資料 ===
+const HOUSEHOLD = {"西屯區":780,"北屯區":750,"南屯區":750,"北區":740,"西區":740,"中區":690,"東區":690,"烏日區":690,"南區":650,
+"大里區":620,"太平區":640,"潭子區":640,"豐原區":640,"后里區":560,"沙鹿區":560,"龍井區":560,"大肚區":550,
+"大雅區":550,"神岡區":550,"梧棲區":500,"清水區":480,"大甲區":470,"外埔區":420,"霧峰區":420,"石岡區":410,
+"東勢區":380,"新社區":380,"和平區":310,"其他":310};
+
+const STUDIO = {"西屯區":930,"北屯區":880,"南屯區":870,"北區":870,"西區":830,"中區":840,"東區":840,"烏日區":820,"南區":820,
+"大里區":740,"太平區":740,"潭子區":760,"豐原區":700,"后里區":740,"沙鹿區":740,"龍井區":690,"大肚區":700,
+"大雅區":760,"神岡區":700,"梧棲區":690,"清水區":680,"大甲區":650,"外埔區":600,"霧峰區":600,"石岡區":600,
+"東勢區":420,"新社區":400,"和平區":320,"其他":320};
+
+const ADJUST_RATES=[0.20,0.18,0.16,0.13,0.10,0.07,0.04,0.00,-0.05];
+const BRACKETS=[5,10,15,20,25,30,35,40,200];
+const BRACKET_LABELS=["0-5","5-10","10-15","15-20","20-25","25-30","30-35","35-40","40+"];
+
+function bracketIndex(age){
+  for(let i=0;i<BRACKETS.length;i++){
+    if(age<=BRACKETS[i]) return i;
+  }
+  return BRACKETS.length-1;
+}
+function getRate(age){ return ADJUST_RATES[bracketIndex(age)]; }
+function getBracketLabel(age){ return BRACKET_LABELS[bracketIndex(age)]; }
+
+document.getElementById("rentForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const dist=document.getElementById("district").value;
+  const isStudio=document.getElementById("isStudio").value; // "yes" or "no"
+  const age=Number(document.getElementById("age").value);
+  const pings=parseFloat(document.getElementById("pings").value);
+  const current=Number(document.getElementById("currentRent").value);
+
+  const resEl=document.getElementById("result");
+  const detailEl=document.getElementById("detail");
+
+  // --- 規則 1 & 2：金額上限，直接「無法承作」，不做計算 ---
+  if(isStudio==="yes" && current>21000){
+    resEl.textContent="無法承作";
+    resEl.className="result warn";
+    detailEl.innerHTML = `（套房上限 21,000，現在租金 <b>${current}</b> 元）`;
+    return;
+  }
+  if(isStudio==="no" && current>35000){
+    resEl.textContent="無法承作";
+    resEl.className="result warn";
+    detailEl.innerHTML = `（非套房上限 35,000，現在租金 <b>${current}</b> 元）`;
+    return;
+  }
+
+  // --- 一般計算 ---
+  const base=(isStudio==="yes"?STUDIO[dist]:HOUSEHOLD[dist]);
+  const rate=getRate(age);
+  const band=Math.ceil(base*(1+rate));     // 租金區間（無條件進位）
+  const highest=Math.ceil(band*pings);     // 最高租金（無條件進位）
+  const pass = highest >= current;
+  const label=`${getBracketLabel(age)} ${isStudio==="yes"?"套房":"非套房"}`;
+
+  // O / X
+  resEl.textContent = pass ? "O" : "X";
+  resEl.className   = "result " + (pass ? "ok" : "warn");
+
+  // --- 規則 3：符合區間時，不顯示最高租金；不符合才顯示 ---
+  if(pass){
+    detailEl.innerHTML =
+      `對應分段：<b>${label}</b><br>`+
+      `租金區間：<b>${band}</b><br>`+
+      `現在租金：<b>${current}</b> 元`;
+  }else{
+    detailEl.innerHTML =
+      `對應分段：<b>${label}</b><br>`+
+      `租金區間：<b>${band}</b><br>`+
+      `坪數：<b>${pings.toFixed(2)}</b><br>`+
+      `最高租金（無條件進位）：<b>${highest}</b> 元<br>`+
+      `現在租金：<b>${current}</b> 元`;
+  }
+});
+</script>
+</body>
+</html>
