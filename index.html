@@ -1,4 +1,3 @@
-```html
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -14,7 +13,6 @@
     .ok{color:green}
     .warn{color:red}
     .detail{margin-top:8px;font-size:16px;color:#333;line-height:1.8}
-    .muted{color:#666}
     .note{margin-top:20px;color:red;font-size:14px;font-weight:bold}
   </style>
 </head>
@@ -25,30 +23,14 @@
     <label>行政區
       <select id="district" required>
         <option value="">— 請選擇 —</option>
-        <option>西屯區</option>
-        <option>北屯區</option>
-        <option>南屯區</option>
-        <option>北區</option>
-        <option>中區</option>
-        <option>西區</option>
-        <option>東區</option>
-        <option>烏日區</option>
-        <option>大里區</option>
-        <option>太平區</option>
-        <option>潭子區</option>
-        <option>豐原區</option>
-        <option>后里區</option>
-        <option>沙鹿區</option>
-        <option>龍井區</option>
-        <option>大肚區</option>
-        <option>梧棲區</option>
-        <option>清水區</option>
-        <option>大甲區</option>
-        <option>外埔區</option>
-        <option>新社區</option>
-        <option>石岡區</option>
-        <option>東勢區</option>
-        <option>和平區</option>
+        <option>西屯區</option><option>北屯區</option><option>南屯區</option>
+        <option>北區</option><option>中區</option><option>西區</option>
+        <option>東區</option><option>烏日區</option><option>大里區</option>
+        <option>太平區</option><option>潭子區</option><option>豐原區</option>
+        <option>后里區</option><option>沙鹿區</option><option>龍井區</option>
+        <option>大肚區</option><option>梧棲區</option><option>清水區</option>
+        <option>大甲區</option><option>外埔區</option><option>新社區</option>
+        <option>石岡區</option><option>東勢區</option><option>和平區</option>
         <option>其它</option>
       </select>
     </label>
@@ -73,7 +55,7 @@
   <div id="note" class="note"></div>
 
 <script>
-// --- 單價表（套房） ---
+// --- 套房 ---
 const STUDIO_TABLE = {
   "西屯區":[1110,1090,1070,1045,1015,990,960,920,875],
   "北屯區":[1120,1100,1080,1055,1025,1000,970,930,885],
@@ -102,7 +84,7 @@ const STUDIO_TABLE = {
   "其它":[385,380,375,365,355,345,335,320,305]
 };
 
-// --- 單價表（非套房） ---
+// --- 非套房 ---
 const HOUSE_TABLE = {
   "西屯區":[940,925,905,885,860,835,815,780,745],
   "北屯區":[900,885,870,850,830,805,780,750,715],
@@ -131,9 +113,8 @@ const HOUSE_TABLE = {
   "其它":[375,370,360,355,345,335,325,310,295]
 };
 
-// 年齡對應欄位：0–4, 5–9, 10–14, 15–19, 20–24, 25–29, 30–34, 35–39, 40+
+// 年齡階層
 const AGE_BANDS = [4,9,14,19,24,29,34,39,999];
-
 function bandIndex(age){
   for(let i=0;i<AGE_BANDS.length;i++){
     if(age<=AGE_BANDS[i]) return i;
@@ -153,52 +134,43 @@ document.getElementById("rentForm").addEventListener("submit", e => {
   const detailEl = document.getElementById("detail");
   const noteEl   = document.getElementById("note");
 
-  // 依坪數自動判斷：套房 / 非套房（不顯示）
   const isStudio = pings <= 15 ? "studio" : "house";
   const table    = isStudio === "studio" ? STUDIO_TABLE : HOUSE_TABLE;
-  const upperLimit = isStudio === "studio" ? 21000 : 35000;
+  const upper    = isStudio === "studio" ? 21000 : 35000;
 
-  // 超過最高租金上限 → 直接無法承作
-  if(current > upperLimit){
+  if(current > upper){
     resEl.textContent = "無法承作";
-    resEl.className   = "result warn";
+    resEl.className = "result warn";
     detailEl.innerHTML =
-      `（${isStudio==="studio"?"套房":"非套房"}租金上限 ${upperLimit.toLocaleString()} 元，`+
-      `現在租金 <b>${current.toLocaleString()}</b> 元）`;
-    noteEl.textContent = "以上試算結果僅供參考，最後結果將由審查單位認定";
+      `（${isStudio==="studio"?"套房":"非套房"}上限 ${upper.toLocaleString()} 元，現在租金 <b>${current.toLocaleString()}</b> 元）`;
+    noteEl.textContent = "以上試算結果僅供參考";
     return;
   }
 
   const idx = bandIndex(age);
   const row = table[dist];
-
   if(!row){
     resEl.textContent = "";
-    detailEl.textContent = "找不到此行政區的單價資料。";
-    noteEl.textContent = "";
+    detailEl.textContent = "找不到此行政區資料。";
     return;
   }
 
-  const priceBand = row[idx];   // 該屋齡單價
-  const priceBase = row[0];     // 0–4 年基準
-
-  const highest = Math.ceil(priceBand * pings); // 最高租金（無條件進位）
-  const pass    = highest >= current;
+  const priceBand = row[idx];
+  const priceBase = row[0];
+  const highest = Math.ceil(priceBand * pings);
+  const pass = highest >= current;
 
   resEl.textContent = pass ? "O" : "X";
-  resEl.className   = "result " + (pass ? "ok" : "warn");
+  resEl.className = "result " + (pass ? "ok" : "warn");
 
-  const html =
-    `租金區間（每坪）：<b>${priceBand}</b> 元／坪<br>`+
+  detailEl.innerHTML =
     `0–4 年基準單價：<b>${priceBase}</b> 元／坪<br>`+
     `坪數：<b>${pings.toFixed(2)}</b> 坪<br>`+
     `最高租金（無條件進位）：<b>${highest.toLocaleString()}</b> 元<br>`+
     `現在租金：<b>${current.toLocaleString()}</b> 元`;
 
-  detailEl.innerHTML = html;
-  noteEl.textContent = "以上試算結果僅供參考，最後結果將由審查單位認定";
+  noteEl.textContent = "以上試算結果僅供參考";
 });
 </script>
 </body>
 </html>
-```
