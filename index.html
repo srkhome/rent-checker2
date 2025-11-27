@@ -3,43 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>五期租金區間試算</title>
+  <title>租金區間試算表（簡易版）</title>
   <style>
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC","Helvetica Neue",Arial,"PingFang TC","Heiti TC",sans-serif;margin:20px}
     label{display:block;margin-top:10px;font-size:14px}
     input,select,button{padding:6px 10px;font-size:14px;margin-top:4px}
     button{cursor:pointer}
+    fieldset{border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:12px}
+    legend{font-size:13px;color:#555;padding:0 6px}
     .result{margin-top:20px;font-size:40px;font-weight:bold}
     .ok{color:green}
     .warn{color:red}
     .detail{margin-top:8px;font-size:16px;color:#333;line-height:1.8}
     .muted{color:#666}
+    .note{margin-top:20px;color:red;font-size:14px;font-weight:bold}
   </style>
 </head>
 <body>
-  <h1>五期租金區間試算</h1>
+  <h1>租金區間試算表（簡易版）</h1>
 
   <form id="rentForm">
     <label>行政區
       <select id="district" required>
         <option value="">— 請選擇 —</option>
-        <option>西屯區</option><option>北屯區</option><option>南屯區</option>
-        <option>北區</option><option>西區</option><option>中區</option><option>東區</option>
-        <option>烏日區</option><option>南區</option><option>大里區</option><option>太平區</option>
-        <option>潭子區</option><option>豐原區</option><option>后里區</option>
-        <option>沙鹿區</option><option>龍井區</option><option>大肚區</option>
-        <option>大雅區</option><option>神岡區</option><option>梧棲區</option>
-        <option>清水區</option><option>大甲區</option><option>外埔區</option>
-        <option>霧峰區</option><option>石岡區</option><option>東勢區</option>
-        <option>新社區</option><option>和平區</option><option>其他</option>
-      </select>
-    </label>
-
-    <label>是否為套房
-      <select id="isStudio" required>
-        <option value="">— 請選擇 —</option>
-        <option value="yes">yes（套房）</option>
-        <option value="no">no（非套房）</option>
+        <option>北屯區</option><option>西屯區</option><option>北區</option><option>南屯區</option>
+        <option>南區</option><option>中區</option><option>西區</option><option>東區</option>
+        <option>烏日區</option><option>大里區</option><option>太平區</option><option>潭子區</option>
+        <option>豐原區</option><option>霧峰區</option><option>大雅區</option><option>沙鹿區</option>
+        <option>龍井區</option><option>后里區</option><option>梧棲區</option><option>清水區</option>
+        <option>大肚區</option><option>神岡區</option><option>大甲區</option><option>外埔區</option>
+        <option>石岡區</option><option>東勢區</option><option>新社區</option><option>和平區</option>
+        <option>其它</option>
       </select>
     </label>
 
@@ -60,84 +54,142 @@
 
   <div id="result" class="result"></div>
   <div id="detail" class="detail"></div>
+  <div id="note" class="note"></div>
 
 <script>
-// === 基礎資料 ===
-const HOUSEHOLD = {"西屯區":780,"北屯區":750,"南屯區":750,"北區":740,"西區":740,"中區":690,"東區":690,"烏日區":690,"南區":650,
-"大里區":620,"太平區":640,"潭子區":640,"豐原區":640,"后里區":560,"沙鹿區":560,"龍井區":560,"大肚區":550,
-"大雅區":550,"神岡區":550,"梧棲區":500,"清水區":480,"大甲區":470,"外埔區":420,"霧峰區":420,"石岡區":410,
-"東勢區":380,"新社區":380,"和平區":310,"其他":310};
+// --- 單價表：依你提供的兩張新表 ---
+// ageBands index: 0:0–4, 1:5–9, 2:10–14, 3:15–19, 4:20–24, 5:25–29, 6:30–34, 7:35–39, 8:40+
 
-const STUDIO = {"西屯區":930,"北屯區":880,"南屯區":870,"北區":870,"西區":830,"中區":840,"東區":840,"烏日區":820,"南區":820,
-"大里區":740,"太平區":740,"潭子區":760,"豐原區":700,"后里區":740,"沙鹿區":740,"龍井區":690,"大肚區":700,
-"大雅區":760,"神岡區":700,"梧棲區":690,"清水區":680,"大甲區":650,"外埔區":600,"霧峰區":600,"石岡區":600,
-"東勢區":420,"新社區":400,"和平區":320,"其他":320};
+const STUDIO_TABLE = {
+  "北屯區":[1120,1100,1080,1055,1025,1000,970,930,885],
+  "西屯區":[1110,1090,1070,1045,1015,990,960,920,875],
+  "北區":[1060,1040,1025,995,970,945,920,880,840],
+  "南屯區":[1060,1040,1025,995,970,945,920,880,840],
+  "南區":[1045,1030,1010,985,960,935,905,870,830],
+  "中區":[1045,1030,1010,985,960,935,905,870,830],
+  "西區":[1010,995,975,950,925,900,875,840,800],
+  "東區":[1010,995,975,950,925,900,875,840,800],
+  "烏日區":[940,925,905,885,860,835,815,780,745],
+  "大里區":[955,900,885,860,840,815,795,760,725],
+  "太平區":[915,900,885,860,840,815,795,760,725],
+  "潭子區":[900,875,860,840,815,795,770,740,705],
+  "豐原區":[900,875,860,840,815,795,770,740,705],
+  "霧峰區":[890,875,860,840,815,795,770,740,705],
+  "大雅區":[890,875,860,840,815,795,770,740,705],
+  "沙鹿區":[870,855,840,820,800,780,755,720,690],
+  "龍井區":[870,855,840,820,800,780,755,720,690],
+  "后里區":[855,840,825,805,785,760,740,710,675],
+  "梧棲區":[840,830,815,795,775,750,730,700,665],
+  "清水區":[840,830,815,795,775,750,730,700,665],
+  "大肚區":[830,815,805,780,760,740,720,690,660],
+  "神岡區":[840,830,815,795,775,750,730,700,665],
+  "大甲區":[720,710,700,680,660,645,625,600,570],
+  "外埔區":[720,710,700,680,660,645,625,600,570],
+  "石岡區":[590,580,570,555,540,525,510,490,470],
+  "東勢區":[590,580,570,555,540,525,510,490,470],
+  "新社區":[485,480,475,465,455,440,430,410,390],
+  "和平區":[480,475,465,455,445,430,420,400,380],
+  "其它":[385,380,375,365,355,345,335,320,305]
+};
 
-const ADJUST_RATES=[0.20,0.18,0.16,0.13,0.10,0.07,0.04,0.00,-0.05];
-// 年限分段：0–4, 5–9, 10–14, 15–19, 20–24, 25–29, 30–34, 35–39, 40+
-const BRACKETS=[4,9,14,19,24,29,34,39,200];
-const BRACKET_LABELS=["0-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39","40+"];
+const HOUSE_TABLE = {
+  "北屯區":[940,925,905,885,860,835,815,780,745],
+  "西屯區":[900,885,870,850,830,805,780,750,715],
+  "北區":[900,885,870,850,830,805,780,750,715],
+  "南屯區":[900,885,870,850,830,805,780,750,715],
+  "南區":[890,875,860,840,815,795,770,740,705],
+  "中區":[890,875,860,840,815,795,770,740,705],
+  "西區":[830,815,805,780,760,740,720,690,660],
+  "東區":[830,815,805,780,760,740,720,690,660],
+  "烏日區":[830,815,805,780,760,740,720,690,660],
+  "大里區":[780,770,755,735,720,700,680,650,620],
+  "太平區":[770,760,745,725,705,685,670,640,610],
+  "潭子區":[770,760,745,725,705,685,670,640,610],
+  "豐原區":[770,760,745,725,705,685,670,640,610],
+  "霧峰區":[675,665,650,635,620,600,585,560,535],
+  "大雅區":[675,665,650,635,620,600,585,560,535],
+  "沙鹿區":[660,650,640,625,605,590,575,550,525],
+  "龍井區":[660,650,640,625,605,590,575,550,525],
+  "后里區":[660,650,640,625,605,590,575,550,525],
+  "梧棲區":[660,650,640,625,605,590,575,550,525],
+  "清水區":[600,590,580,565,550,535,520,500,475],
+  "大肚區":[590,580,570,555,540,525,510,480,460],
+  "神岡區":[600,590,580,565,550,535,520,500,475],
+  "大甲區":[565,555,550,535,520,500,490,470,450],
+  "外埔區":[505,500,490,475,465,450,440,420,400],
+  "石岡區":[505,500,490,475,465,450,440,420,400],
+  "東勢區":[495,485,480,465,455,440,430,410,390],
+  "新社區":[445,440,430,420,410,400,385,370,355],
+  "和平區":[445,440,430,420,410,400,385,370,355],
+  "其它":[375,370,360,355,345,335,325,310,295]
+};
 
-function bracketIndex(age){
-  for(let i=0;i<BRACKETS.length;i++){
-    if(age<=BRACKETS[i]) return i;
+// 屋齡對應欄位：0–4, 5–9, 10–14, 15–19, 20–24, 25–29, 30–34, 35–39, 40+
+const AGE_BANDS = [4,9,14,19,24,29,34,39,999];
+function bandIndex(age){
+  for(let i=0;i<AGE_BANDS.length;i++){
+    if(age<=AGE_BANDS[i]) return i;
   }
-  return BRACKETS.length-1;
+  return AGE_BANDS.length-1;
 }
-function getRate(age){ return ADJUST_RATES[bracketIndex(age)]; }
-function getBracketLabel(age){ return BRACKET_LABELS[bracketIndex(age)]; }
 
 document.getElementById("rentForm").addEventListener("submit", e=>{
   e.preventDefault();
-  const dist=document.getElementById("district").value;
-  const isStudio=document.getElementById("isStudio").value; // "yes" or "no"
-  const age=Number(document.getElementById("age").value);
-  const pings=parseFloat(document.getElementById("pings").value);
-  const current=Number(document.getElementById("currentRent").value);
 
-  const resEl=document.getElementById("result");
-  const detailEl=document.getElementById("detail");
+  const dist   = document.getElementById("district").value;
+  const age    = Number(document.getElementById("age").value);
+  const pings  = parseFloat(document.getElementById("pings").value);
+  const current= Number(document.getElementById("currentRent").value);
 
-  // --- 規則 1 & 2：金額上限，直接「無法承作」，不做計算 ---
-  if(isStudio==="yes" && current>21000){
-    resEl.textContent="無法承作";
-    resEl.className="result warn";
-    detailEl.innerHTML = `（套房上限 21,000，現在租金 <b>${current}</b> 元）`;
+  const resEl    = document.getElementById("result");
+  const detailEl = document.getElementById("detail");
+  const noteEl   = document.getElementById("note");
+
+  // 依坪數自動判斷：套房 / 非套房（不顯示，只用來選表）
+  const isStudio = pings <= 15 ? "studio" : "house";
+  const table    = isStudio === "studio" ? STUDIO_TABLE : HOUSE_TABLE;
+  const upperLimit = isStudio === "studio" ? 21000 : 35000;
+
+  // 若超過單戶最高租金上限 → 直接無法承作
+  if(current > upperLimit){
+    resEl.textContent = "無法承作";
+    resEl.className   = "result warn";
+    detailEl.innerHTML =
+      `（${isStudio==="studio"?"套房":"非套房"}租金上限 ${upperLimit.toLocaleString()} 元，`+
+      `現在租金 <b>${current.toLocaleString()}</b> 元）`;
+    noteEl.textContent = "以上試算結果僅供參考，最後結果將由審查單位認定";
     return;
   }
-  if(isStudio==="no" && current>35000){
-    resEl.textContent="無法承作";
-    resEl.className="result warn";
-    detailEl.innerHTML = `（非套房上限 35,000，現在租金 <b>${current}</b> 元）`;
+
+  const idx = bandIndex(age);
+  const row = table[dist];
+  if(!row){
+    resEl.textContent = "";
+    detailEl.textContent = "找不到此行政區的單價資料。";
+    noteEl.textContent = "";
     return;
   }
 
-  // --- 一般計算 ---
-  const base=(isStudio==="yes"?STUDIO[dist]:HOUSEHOLD[dist]);
-  const rate=getRate(age);
-  const band=Math.ceil(base*(1+rate));     // 租金區間（無條件進位）
-  const highest=Math.ceil(band*pings);     // 最高租金（無條件進位）
-  const pass = highest >= current;
-  const label=`${getBracketLabel(age)} ${isStudio==="yes"?"套房":"非套房"}`;
+  const priceBand    = row[idx];    // 該屋齡單價（元／坪）
+  const priceBase    = row[0];      // 0–4 年基準單價（元／坪）
+  const rateFromBase = priceBase ? (priceBand/priceBase - 1) : 0;
 
-  // O / X
+  const highest = Math.ceil(priceBand * pings);  // 最高租金（無條件進位）
+  const pass    = highest >= current;
+
   resEl.textContent = pass ? "O" : "X";
   resEl.className   = "result " + (pass ? "ok" : "warn");
 
-  // --- 規則 3：符合區間時，不顯示最高租金；不符合才顯示 ---
-  if(pass){
-    detailEl.innerHTML =
-      `對應分段：<b>${label}</b><br>`+
-      `租金區間：<b>${band}</b><br>`+
-      `現在租金：<b>${current}</b> 元`;
-  }else{
-    detailEl.innerHTML =
-      `對應分段：<b>${label}</b><br>`+
-      `租金區間：<b>${band}</b><br>`+
-      `坪數：<b>${pings.toFixed(2)}</b><br>`+
-      `最高租金（無條件進位）：<b>${highest}</b> 元<br>`+
-      `現在租金：<b>${current}</b> 元`;
-  }
+  let html =
+    `租金區間（每坪）：<b>${priceBand}</b> 元／坪<br>`+
+    `0–4 年基準單價：<b>${priceBase}</b> 元／坪<br>`+
+    `調等率：<b>${(rateFromBase*100).toFixed(2)}%</b><br>`+
+    `坪數：<b>${pings.toFixed(2)}</b> 坪<br>`+
+    `最高租金（無條件進位）：<b>${highest.toLocaleString()}</b> 元<br>`+
+    `現在租金：<b>${current.toLocaleString()}</b> 元`;
+
+  detailEl.innerHTML = html;
+  noteEl.textContent = "以上試算結果僅供參考，最後結果將由審查單位認定";
 });
 </script>
 </body>
